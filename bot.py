@@ -10,6 +10,7 @@ Deploy on: Railway / Render / any VPS (NOT Vercel)
 """
 
 import discord
+import os
 from discord.ext import commands, tasks
 from discord import ui
 import asyncio
@@ -22,7 +23,7 @@ import pytz
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # ── Bot token ──────────────────────────────────────────────────────────────────
-BOT_TOKEN = "MTQ5NTY1MjU3NzAxNzMzNTgzMA.GWaazy.jFBMkpbrKAhLiK3zfnp0OswBL76EO1t_2ByI1A"
+BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 
 # ── Timing ─────────────────────────────────────────────────────────────────────
 REMINDER_HOUR   = 23   # 11 PM  (22 = 10 PM, 23 = 11 PM)
