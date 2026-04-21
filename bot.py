@@ -63,29 +63,18 @@ MEMBER_CONFIG = {
         "update_thread_id": 1468370955918377042,      # <-- FILL: Sarah's update thread/channel ID
     },
 
-    # ── Asjad's members ────────────────────────────────────────────────────────
+    # ── sarah's members ────────────────────────────────────────────────────────
     1462175465652490334: {                            # <-- REPLACE 2  with Hannan's  Discord user ID
         "name": "Hannan",
-        "team_lead": "asjad",
+        "team_lead": "sarah",
         "update_thread_id": 1471552489546322145,      # <-- FILL: Hannan's update thread/channel ID
     },
     1450779717916561468: {                            # <-- REPLACE 3  with Ayan's    Discord user ID
         "name": "ayan",
-        "team_lead": "asjad",
+        "team_lead": "sarah",
         "update_thread_id": 1471552126756065494,      # <-- FILL: Ayan's update thread/channel ID
     },
-    1298681291633328188: {                            # <-- REPLACE 4  with Amna's    Discord user ID
-        "name": "amna",
-        "team_lead": "asjad",
-        "update_thread_id": 1489277801277423687,      # <-- FILL: Amna's update thread/channel ID
-    },
-    907733451053105152: {                            # <-- REPLACE 5  with Kashif's  Discord user ID
-        "name": "kashif",
-        "team_lead": "asjad",
-        "update_thread_id": 1489277943602479285,      # <-- FILL: Kashif's update thread/channel ID
-    },
-
-    # ── Sarah's members ────────────────────────────────────────────────────────
+    
     1221024470454632558: {                            # <-- REPLACE 6  with Aaimlik's Discord user ID
         "name": "aaimlik",
         "team_lead": "sarah",
@@ -96,11 +85,19 @@ MEMBER_CONFIG = {
         "team_lead": "sarah",
         "update_thread_id": 1490638048269172737,      # <-- FILL: Seroosh's update thread/channel ID
     },
-    1284606179028504597: {                            # <-- REPLACE 8  with Affan's   Discord user ID
-        "name": "affan",
-        "team_lead": "sarah",
-        "update_thread_id": 1495344126324113529,      # <-- FILL: Affan's update thread/channel ID
+
+   #-- Asjad's members
+    1298681291633328188: {                            # <-- REPLACE 4  with Amna's    Discord user ID
+        "name": "amna",
+        "team_lead": "asjad",
+        "update_thread_id": 1489277801277423687,      # <-- FILL: Amna's update thread/channel ID
     },
+    907733451053105152: {                            # <-- REPLACE 5  with Kashif's  Discord user ID
+        "name": "kashif",
+        "team_lead": "asjad",
+        "update_thread_id": 1489277943602479285,      # <-- FILL: Kashif's update thread/channel ID
+    },
+   
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
