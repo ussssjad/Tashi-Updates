@@ -460,8 +460,9 @@ async def do_send_reminders(only_for_lead_id: int = 0):
     """
     if only_for_lead_id:
         target_ids = get_my_members(only_for_lead_id)
-        lead_name  = get_lead_name_for_member(target_ids[0]) if target_ids else "unknown"
-        log.info("Test reminder triggered by lead %s — sending to %d member(s)…", lead_name, len(target_ids))
+        lead_key   = get_lead_key_by_user_id(only_for_lead_id)
+        lead_name  = TEAM_LEADS.get(lead_key, {}).get("display_name", "unknown")
+        log.info("Test reminder triggered by lead %s — sending to their %d member(s)…", lead_name, len(target_ids))
     else:
         target_ids = MEMBER_IDS
         log.info("Scheduled reminder — sending to all %d members…", len(target_ids))
@@ -544,7 +545,9 @@ async def test_reminder(ctx: commands.Context):
     if not my_members:
         await ctx.send("⚠️ No members are assigned to you.")
         return
-    await ctx.send(f"✅ Sending test reminders to your {len(my_members)} member(s)…")
+    count = len(my_members)
+    noun  = "member" if count == 1 else "members"
+    await ctx.send(f"✅ Sending test reminders to your {count} {noun}…")
     await do_send_reminders(only_for_lead_id=ctx.author.id)
 
 
@@ -557,6 +560,8 @@ async def status(ctx: commands.Context):
     """
     my_members = get_my_members(ctx.author.id)
     next_run   = send_daily_reminders.next_iteration
+    count      = len(my_members)
+    noun       = "member" if count == 1 else "members"
 
     member_lines = "\n".join(
         f"  • {MEMBER_CONFIG[uid]['name']} (ID: `{uid}`)"
@@ -565,7 +570,7 @@ async def status(ctx: commands.Context):
 
     await ctx.send(
         f"✅ **Bot is online.**\n"
-        f"**Your members ({len(my_members)}):**\n{member_lines}\n"
+        f"**Your {noun} ({count}):**\n{member_lines}\n"
         f"**Active collectors:** {len(active_collectors)}\n"
         f"**Next scheduled reminder:** "
         f"{discord.utils.format_dt(next_run, style='F') if next_run else 'not scheduled'}"
