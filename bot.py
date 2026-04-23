@@ -1,8 +1,8 @@
 """
 Discord Task Submission Bot
 ============================
-Sends daily 11 PM reminders to team members via DM.
-Members can accept or reject. Accepted opens a submission session.
+Team leads send reminders manually via !testreminder.
+Members can accept or reject. Accepted opens a submission session valid until 11:59 PM same day.
 Submissions go to the assigned team lead for approval/rejection.
 Files are posted to the member's designated update thread.
 
@@ -11,11 +11,11 @@ Deploy on: Railway / Render / any VPS (NOT Vercel)
 
 import discord
 import os
-from discord.ext import commands, tasks
+from discord.ext import commands
 from discord import ui
 import asyncio
 import logging
-from datetime import datetime, time
+from datetime import datetime
 import pytz
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -25,9 +25,7 @@ import pytz
 # ── Bot token ──────────────────────────────────────────────────────────────────
 BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 
-# ── Timing ─────────────────────────────────────────────────────────────────────
-REMINDER_HOUR   = 23   # 11 PM  (22 = 10 PM, 23 = 11 PM)
-REMINDER_MINUTE = 0
+# ── Timezone ───────────────────────────────────────────────────────────────────
 TIMEZONE = pytz.timezone("Asia/Karachi")
 
 # ── How to get any Discord ID ──────────────────────────────────────────────────
@@ -484,19 +482,17 @@ async def notify_lead_of_rejection(member: discord.User):
 # Core reminder logic
 # ─────────────────────────────────────────────
 
-async def do_send_reminders(only_for_lead_id: int = 0):
+async def do_send_reminders(lead_user_id: int):
     """
-    Sends reminders to members.
-    - If only_for_lead_id is given (from !testreminder), only that lead's members get reminded.
-    - If called from the scheduler (only_for_lead_id=0), ALL members get reminded.
+    Sends reminders to all members assigned to the given team lead.
+    Called only via !testreminder — no automatic scheduling.
     """
-    if only_for_lead_id:
-        target_ids = get_my_members(only_for_lead_id)
-        lead_name  = get_lead_name_for_member(target_ids[0]) if target_ids else "unknown"
-        log.info("Test reminder triggered by lead %s — sending to %d member(s)…", lead_name, len(target_ids))
-    else:
-        target_ids = MEMBER_IDS
-        log.info("Scheduled reminder — sending to all %d members…", len(target_ids))
+    target_ids = get_my_members(lead_user_id)
+    lead_key   = get_lead_key_by_user_id(lead_user_id)
+    lead_name  = TEAM_LEADS.get(lead_key, {}).get("display_name", "unknown")
+    count      = len(target_ids)
+    noun       = "member" if count == 1 else "members"
+    log.info("Reminder triggered by lead %s — sending to their %d %s…", lead_name, count, noun)
 
     today = datetime.now(TIMEZONE).strftime("%A, %B %d")
 
@@ -506,11 +502,11 @@ async def do_send_reminders(only_for_lead_id: int = 0):
             dm   = await user.create_dm()
             await dm.send(
                 f"👋 Hey **{user.display_name}**!\n\n"
-                f"This is your daily task reminder for **{today}**.\n"
-                f"Please submit your work before midnight. What would you like to do?",
+                f"This is your task reminder for **{today}**.\n"
+                f"Please submit your work before **11:59 PM** tonight. What would you like to do?",
                 view=ReminderView(user),
             )
-            log.info("Reminder sent to %s (%d) — lead: %s", user.name, uid, get_lead_name_for_member(uid))
+            log.info("Reminder sent to %s (%d) — lead: %s", user.name, uid, lead_name)
         except discord.NotFound:
             log.warning("User %d not found, skipping.", uid)
         except discord.Forbidden:
@@ -522,23 +518,13 @@ async def do_send_reminders(only_for_lead_id: int = 0):
 
 
 # ─────────────────────────────────────────────
-# Scheduled task: fires every day at 11 PM Karachi
-# ─────────────────────────────────────────────
-
-@tasks.loop(time=time(hour=REMINDER_HOUR, minute=REMINDER_MINUTE, tzinfo=TIMEZONE))
-async def send_daily_reminders():
-    await do_send_reminders()   # no lead filter → all members
-
-
-# ─────────────────────────────────────────────
 # Bot events
 # ─────────────────────────────────────────────
 
 @bot.event
 async def on_ready():
     log.info("Logged in as %s (ID: %s)", bot.user, bot.user.id)
-    send_daily_reminders.start()
-    log.info("Daily reminder scheduled for %02d:%02d Asia/Karachi", REMINDER_HOUR, REMINDER_MINUTE)
+    log.info("Bot ready — reminders are manual only via !testreminder")
 
 
 @bot.event
@@ -570,15 +556,20 @@ async def on_message(message: discord.Message):
 @is_any_team_lead()
 async def test_reminder(ctx: commands.Context):
     """
-    Fires a test reminder — but ONLY to the members assigned to the lead
-    who ran this command. No overlap with other leads' members.
+    Sends a reminder to all members assigned to the lead who runs this command.
+    Submissions will be valid until 11:59 PM tonight.
     """
     my_members = get_my_members(ctx.author.id)
     if not my_members:
         await ctx.send("⚠️ No members are assigned to you.")
         return
-    await ctx.send(f"✅ Sending test reminders to your {len(my_members)} member(s)…")
-    await do_send_reminders(only_for_lead_id=ctx.author.id)
+    count = len(my_members)
+    noun  = "member" if count == 1 else "members"
+    await ctx.send(
+        f"✅ Sending reminders to your {count} {noun}…\n"
+        f"📌 Their submission window is open until **11:59 PM** tonight."
+    )
+    await do_send_reminders(lead_user_id=ctx.author.id)
 
 
 @bot.command(name="status")
@@ -589,19 +580,25 @@ async def status(ctx: commands.Context):
     Each lead sees only their own members, not others'.
     """
     my_members = get_my_members(ctx.author.id)
-    next_run   = send_daily_reminders.next_iteration
+    count      = len(my_members)
+    noun       = "member" if count == 1 else "members"
 
     member_lines = "\n".join(
         f"  • {MEMBER_CONFIG[uid]['name']} (ID: `{uid}`)"
         for uid in my_members
     ) or "  _(none assigned)_"
 
+    now       = datetime.now(TIMEZONE)
+    remaining = seconds_until_midnight()
+    mins_left = int(remaining // 60)
+
     await ctx.send(
         f"✅ **Bot is online.**\n"
-        f"**Your members ({len(my_members)}):**\n{member_lines}\n"
-        f"**Active collectors:** {len(active_collectors)}\n"
-        f"**Next scheduled reminder:** "
-        f"{discord.utils.format_dt(next_run, style='F') if next_run else 'not scheduled'}"
+        f"**Your {noun} ({count}):**\n{member_lines}\n"
+        f"**Active submission sessions:** {len(active_collectors)}\n"
+        f"**Current time (Karachi):** {now.strftime('%I:%M %p')}\n"
+        f"**Submission window:** {'Open — ' + str(mins_left) + ' min remaining today' if remaining > 0 else '🔴 Closed (past 11:59 PM)'}\n"
+        f"ℹ️ Reminders are sent manually via `!testreminder`."
     )
 
 
