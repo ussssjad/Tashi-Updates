@@ -140,6 +140,18 @@ def get_my_members(lead_user_id: int) -> list[int]:
     return [uid for uid, cfg in MEMBER_CONFIG.items() if cfg["team_lead"] == lead_key]
 
 
+# ── Deadline helper ────────────────────────────────────────────────────────────
+def seconds_until_midnight() -> float:
+    """
+    Returns how many seconds remain until 11:59:59 PM today (Karachi time).
+    If it's already past 11:59 PM, returns 0 so the session expires immediately.
+    """
+    now      = datetime.now(TIMEZONE)
+    deadline = now.replace(hour=23, minute=59, second=59, microsecond=0)
+    remaining = (deadline - now).total_seconds()
+    return max(remaining, 0)
+
+
 # ─────────────────────────────────────────────
 # Logging
 # ─────────────────────────────────────────────
@@ -292,6 +304,16 @@ class RejectionReasonModal(ui.Modal, title="Rejection Reason"):
 async def collect_submission(member: discord.User, channel: discord.DMChannel):
     if member.id in active_collectors:
         return
+
+    # Check immediately: if there's no time left today, reject right away
+    remaining = seconds_until_midnight()
+    if remaining <= 0:
+        await channel.send(
+            "🚫 **Submission window closed.** Today's deadline (11:59 PM) has already passed. "
+            "Please wait for tomorrow's reminder to submit your work."
+        )
+        return
+
     active_collectors.add(member.id)
     collected_messages = []
 
@@ -299,18 +321,28 @@ async def collect_submission(member: discord.User, channel: discord.DMChannel):
         return m.author.id == member.id and m.channel.id == channel.id
 
     await channel.send(
-        "📎 **Send your work now.** You can send multiple messages with files, "
-        "images, or text. Type **`done`** when you're finished."
+        f"📎 **Send your work now.** You can send multiple messages with files, "
+        f"images, or text. Type **`done`** when you're finished.\n"
+        f"⏳ **Deadline: 11:59 PM today** — your submission window closes at midnight."
     )
 
     try:
         while True:
+            # Recalculate remaining time before each wait so it stays accurate
+            remaining = seconds_until_midnight()
+            if remaining <= 0:
+                await channel.send(
+                    "🚫 **Time's up!** The submission deadline (11:59 PM) has passed. "
+                    "Your session has been closed. Please contact your team lead if needed."
+                )
+                return
+
             try:
-                msg = await bot.wait_for("message", check=check, timeout=3600)
+                msg = await bot.wait_for("message", check=check, timeout=remaining)
             except asyncio.TimeoutError:
                 await channel.send(
-                    "⏰ Your submission window has expired (1 hour). "
-                    "Please contact your team lead directly."
+                    "🚫 **Submission window closed.** The deadline (11:59 PM) has passed "
+                    "and your session has expired. Please contact your team lead if needed."
                 )
                 return
 
@@ -460,9 +492,8 @@ async def do_send_reminders(only_for_lead_id: int = 0):
     """
     if only_for_lead_id:
         target_ids = get_my_members(only_for_lead_id)
-        lead_key   = get_lead_key_by_user_id(only_for_lead_id)
-        lead_name  = TEAM_LEADS.get(lead_key, {}).get("display_name", "unknown")
-        log.info("Test reminder triggered by lead %s — sending to their %d member(s)…", lead_name, len(target_ids))
+        lead_name  = get_lead_name_for_member(target_ids[0]) if target_ids else "unknown"
+        log.info("Test reminder triggered by lead %s — sending to %d member(s)…", lead_name, len(target_ids))
     else:
         target_ids = MEMBER_IDS
         log.info("Scheduled reminder — sending to all %d members…", len(target_ids))
@@ -526,7 +557,8 @@ async def on_message(message: discord.Message):
     ):
         await message.channel.send(
             "👋 It looks like you're trying to submit something! "
-            "Please wait for your 11 PM reminder, or ask your team lead to trigger one manually."
+            "Please wait for your 11 PM reminder, or ask your team lead to trigger one manually.\n"
+            "📌 Note: submissions are only accepted until **11:59 PM** each day."
         )
 
 
@@ -545,9 +577,7 @@ async def test_reminder(ctx: commands.Context):
     if not my_members:
         await ctx.send("⚠️ No members are assigned to you.")
         return
-    count = len(my_members)
-    noun  = "member" if count == 1 else "members"
-    await ctx.send(f"✅ Sending test reminders to your {count} {noun}…")
+    await ctx.send(f"✅ Sending test reminders to your {len(my_members)} member(s)…")
     await do_send_reminders(only_for_lead_id=ctx.author.id)
 
 
@@ -560,8 +590,6 @@ async def status(ctx: commands.Context):
     """
     my_members = get_my_members(ctx.author.id)
     next_run   = send_daily_reminders.next_iteration
-    count      = len(my_members)
-    noun       = "member" if count == 1 else "members"
 
     member_lines = "\n".join(
         f"  • {MEMBER_CONFIG[uid]['name']} (ID: `{uid}`)"
@@ -570,7 +598,7 @@ async def status(ctx: commands.Context):
 
     await ctx.send(
         f"✅ **Bot is online.**\n"
-        f"**Your {noun} ({count}):**\n{member_lines}\n"
+        f"**Your members ({len(my_members)}):**\n{member_lines}\n"
         f"**Active collectors:** {len(active_collectors)}\n"
         f"**Next scheduled reminder:** "
         f"{discord.utils.format_dt(next_run, style='F') if next_run else 'not scheduled'}"
