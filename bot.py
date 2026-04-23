@@ -149,11 +149,26 @@ def is_any_team_lead():
 
 class ReminderView(ui.View):
     def __init__(self, member: discord.User):
-        super().__init__(timeout=None)
+        # Timeout is set to exactly how many seconds remain until 11:59 PM.
+        # This means the buttons automatically disable at the deadline regardless
+        # of when the reminder was sent (8 AM, 1 PM, 10 PM — doesn't matter).
+        super().__init__(timeout=seconds_until_midnight())
         self.member = member
 
     @ui.button(label="✅  Yes, I'll submit", style=discord.ButtonStyle.success, custom_id="accept_task")
     async def accept(self, interaction: discord.Interaction, button: ui.Button):
+        # Secondary guard: re-check the deadline at the exact moment the button
+        # is pressed, in case the View timeout fired but the interaction arrived
+        # in the same instant.
+        if seconds_until_midnight() <= 0:
+            await interaction.response.send_message(
+                "🚫 **Submission window closed.** Today's deadline (11:59 PM) has already passed. "
+                "Please wait for tomorrow's reminder to submit your work.",
+                ephemeral=True,
+            )
+            self.stop()
+            return
+
         await interaction.response.send_message(
             "Great! Please send your work now — you can attach **files** or **images**. "
             "Type `done` when you've finished submitting everything.\n\n"
@@ -170,6 +185,13 @@ class ReminderView(ui.View):
         )
         self.stop()
         await notify_lead_of_rejection(interaction.user)
+
+    async def on_timeout(self):
+        # Called automatically by discord.py when the deadline (11:59 PM) is
+        # reached. Disables all buttons on the original reminder message so
+        # members can no longer interact with it after the cutoff.
+        for item in self.children:
+            item.disabled = True
 
 
 class ReviewView(ui.View):
