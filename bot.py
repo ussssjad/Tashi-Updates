@@ -202,8 +202,9 @@ class ReminderView(ui.View):
     @ui.button(label="✅  Yes, I'll submit", style=discord.ButtonStyle.success, custom_id="accept_task")
     async def accept(self, interaction: discord.Interaction, button: ui.Button):
         await interaction.response.send_message(
-            "Great! Please send your work now — you can attach **files, images, links, or text**. "
-            "Type `done` when you've finished submitting everything.",
+            "Great! Please send your work now — you can attach **files** or **images**. "
+            "Type `done` when you've finished submitting everything.\n\n"
+            "⏳ **Deadline: 11:59 PM tonight** — your submission window closes at midnight."
         )
         self.stop()
         bot.loop.create_task(collect_submission(interaction.user, interaction.channel))
@@ -317,12 +318,6 @@ async def collect_submission(member: discord.User, channel: discord.DMChannel):
 
     def check(m: discord.Message):
         return m.author.id == member.id and m.channel.id == channel.id
-
-    await channel.send(
-        f"📎 **Send your work now.** You can send multiple messages with files, "
-        f"images, or text. Type **`done`** when you're finished.\n"
-        f"⏳ **Deadline: 11:59 PM today** — your submission window closes at midnight."
-    )
 
     try:
         while True:
