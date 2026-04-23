@@ -1,7 +1,7 @@
 """
 Discord Task Submission Bot
 ============================
-Team leads send reminders manually via !testreminder.
+Team leads send reminders manually via !task.
 Members can accept or reject. Accepted opens a submission session valid until 11:59 PM same day.
 Submissions go to the assigned team lead for approval/rejection.
 Files are posted to the member's designated update thread.
@@ -22,80 +22,62 @@ import pytz
 #                            C O N F I G U R A T I O N
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# ── Bot token ──────────────────────────────────────────────────────────────────
 BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
-
-# ── Timezone ───────────────────────────────────────────────────────────────────
 TIMEZONE = pytz.timezone("Asia/Karachi")
 
-# ── How to get any Discord ID ──────────────────────────────────────────────────
-# Discord → Settings → Advanced → enable Developer Mode
-# • User ID          : Right-click a user            → "Copy User ID"
-# • Thread/Channel ID: Right-click a thread/channel  → "Copy Channel ID"
-# ──────────────────────────────────────────────────────────────────────────────
-
-# ── Team Leads ─────────────────────────────────────────────────────────────────
 TEAM_LEADS = {
-    #  key          display name          user ID
-    "tashi": {"display_name": "tashitechnologies", "user_id": 1434957366578643074},  # <-- FILL
-    "asjad":  {"display_name": "ussjad",           "user_id": 1463220939151114460},  # <-- FILL
-    "sarah":  {"display_name": "delta",            "user_id": 1301504724062699600},  # <-- FILL
+    "tashi": {"display_name": "tashitechnologies", "user_id": 1434957366578643074},
+    "asjad":  {"display_name": "ussjad",           "user_id": 1463220939151114460},
+    "sarah":  {"display_name": "delta",            "user_id": 1301504724062699600},
 }
-
-# ── Members ────────────────────────────────────────────────────────────────────
-# Replace each placeholder KEY (0-8) with the member's real Discord user ID.
-# Fill update_thread_id with the thread/channel ID where their files go.
-# "team_lead" must be exactly "tashi", "asjad", or "sarah".
 
 MEMBER_CONFIG = {
 
     # ── Tashi's members ────────────────────────────────────────────────────────
-    1463220939151114460: {                            # <-- REPLACE 0  with Asjad's   Discord user ID
+    1463220939151114460: {
         "name": "Asjad",
         "team_lead": "tashi",
-        "update_thread_id": 1468370899085299891,      # <-- FILL: Asjad's update thread/channel ID
+        "update_thread_id": 1468370899085299891,
     },
-    1301504724062699600: {                            # <-- REPLACE 1  with Sarah's   Discord user ID
+    1301504724062699600: {
         "name": "Sarah",
         "team_lead": "tashi",
-        "update_thread_id": 1468370955918377042,      # <-- FILL: Sarah's update thread/channel ID
+        "update_thread_id": 1468370955918377042,
     },
 
-    # ── sarah's members ────────────────────────────────────────────────────────
-    1462175465652490334: {                            # <-- REPLACE 2  with Hannan's  Discord user ID
+    # ── Sarah's members ────────────────────────────────────────────────────────
+    1462175465652490334: {
         "name": "Hannan",
         "team_lead": "sarah",
-        "update_thread_id": 1471552489546322145,      # <-- FILL: Hannan's update thread/channel ID
+        "update_thread_id": 1471552489546322145,
     },
-    1450779717916561468: {                            # <-- REPLACE 3  with Ayan's    Discord user ID
+    1450779717916561468: {
         "name": "ayan",
         "team_lead": "sarah",
-        "update_thread_id": 1471552126756065494,      # <-- FILL: Ayan's update thread/channel ID
+        "update_thread_id": 1471552126756065494,
     },
-    
-    1221024470454632558: {                            # <-- REPLACE 6  with Aaimlik's Discord user ID
+    1221024470454632558: {
         "name": "aaimlik",
         "team_lead": "sarah",
-        "update_thread_id": 1490637830471553034,      # <-- FILL: Aaimlik's update thread/channel ID
+        "update_thread_id": 1490637830471553034,
     },
-    1478538357188460625: {                            # <-- REPLACE 7  with Seroosh's Discord user ID
+    1478538357188460625: {
         "name": "Seroosh",
         "team_lead": "sarah",
-        "update_thread_id": 1490638048269172737,      # <-- FILL: Seroosh's update thread/channel ID
+        "update_thread_id": 1490638048269172737,
     },
 
-   #-- Asjad's members
-    1298681291633328188: {                            # <-- REPLACE 4  with Amna's    Discord user ID
+    # ── Asjad's members ────────────────────────────────────────────────────────
+    1298681291633328188: {
         "name": "amna",
         "team_lead": "asjad",
-        "update_thread_id": 1489277801277423687,      # <-- FILL: Amna's update thread/channel ID
+        "update_thread_id": 1489277801277423687,
     },
-    907733451053105152: {                            # <-- REPLACE 5  with Kashif's  Discord user ID
+    907733451053105152: {
         "name": "kashif",
         "team_lead": "asjad",
-        "update_thread_id": 1489277943602479285,      # <-- FILL: Kashif's update thread/channel ID
+        "update_thread_id": 1489277943602479285,
     },
-   
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -105,7 +87,6 @@ MEMBER_CONFIG = {
 MEMBER_IDS = list(MEMBER_CONFIG.keys())
 
 
-# ── Helper: look up a member's config ─────────────────────────────────────────
 def get_member_cfg(member_id: int) -> dict:
     return MEMBER_CONFIG.get(member_id, {})
 
@@ -120,49 +101,32 @@ def get_lead_name_for_member(member_id: int) -> str:
     key = get_lead_key_for_member(member_id)
     return TEAM_LEADS.get(key, {}).get("display_name", "Unknown Lead")
 
-# ── Helper: look up which lead key belongs to a given user ID ─────────────────
 def get_lead_key_by_user_id(user_id: int) -> str:
-    """Returns the lead key ('tashi'/'asjad'/'sarah') for a given Discord user ID."""
     for key, cfg in TEAM_LEADS.items():
         if cfg["user_id"] == user_id:
             return key
     return ""
 
 def is_team_lead_id(user_id: int) -> bool:
-    """Returns True if this user ID is one of the configured team leads."""
     return any(cfg["user_id"] == user_id for cfg in TEAM_LEADS.values())
 
 def get_my_members(lead_user_id: int) -> list[int]:
-    """Returns a list of member IDs assigned to this team lead."""
     lead_key = get_lead_key_by_user_id(lead_user_id)
     return [uid for uid, cfg in MEMBER_CONFIG.items() if cfg["team_lead"] == lead_key]
 
 
-# ── Deadline helper ────────────────────────────────────────────────────────────
 def seconds_until_midnight() -> float:
-    """
-    Returns how many seconds remain until 11:59:59 PM today (Karachi time).
-    If it's already past 11:59 PM, returns 0 so the session expires immediately.
-    """
     now      = datetime.now(TIMEZONE)
     deadline = now.replace(hour=23, minute=59, second=59, microsecond=0)
     remaining = (deadline - now).total_seconds()
     return max(remaining, 0)
 
 
-# ─────────────────────────────────────────────
-# Logging
-# ─────────────────────────────────────────────
-
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
 )
 log = logging.getLogger("TaskBot")
-
-# ─────────────────────────────────────────────
-# Bot setup
-# ─────────────────────────────────────────────
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -171,17 +135,10 @@ intents.dm_messages = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Tracks members currently in an active submission session
 active_collectors: set[int] = set()
 
 
-# ─────────────────────────────────────────────
-# Permission check — evaluated at call time, not startup
-# (fixes the bug where TEAM_LEAD_IDS was built when all IDs were still 0)
-# ─────────────────────────────────────────────
-
 def is_any_team_lead():
-    """Command check: only configured team leads may run admin commands."""
     async def predicate(ctx: commands.Context) -> bool:
         if is_team_lead_id(ctx.author.id):
             return True
@@ -189,10 +146,6 @@ def is_any_team_lead():
         return False
     return commands.check(predicate)
 
-
-# ─────────────────────────────────────────────
-# UI: Reminder buttons (Accept / Reject)
-# ─────────────────────────────────────────────
 
 class ReminderView(ui.View):
     def __init__(self, member: discord.User):
@@ -219,10 +172,6 @@ class ReminderView(ui.View):
         await notify_lead_of_rejection(interaction.user)
 
 
-# ─────────────────────────────────────────────
-# UI: Review buttons (Approve / Reject) — shown to team lead
-# ─────────────────────────────────────────────
-
 class ReviewView(ui.View):
     def __init__(self, member: discord.User):
         super().__init__(timeout=None)
@@ -230,7 +179,6 @@ class ReviewView(ui.View):
 
     @ui.button(label="✅  Approve", style=discord.ButtonStyle.success, custom_id="approve_work")
     async def approve(self, interaction: discord.Interaction, button: ui.Button):
-        # Only the assigned lead may approve
         if not is_assigned_lead(interaction.user.id, self.member.id):
             await interaction.response.send_message(
                 "❌ You are not the assigned team lead for this member.", ephemeral=True
@@ -249,7 +197,6 @@ class ReviewView(ui.View):
 
     @ui.button(label="❌  Reject", style=discord.ButtonStyle.danger, custom_id="reject_work")
     async def reject(self, interaction: discord.Interaction, button: ui.Button):
-        # Only the assigned lead may reject
         if not is_assigned_lead(interaction.user.id, self.member.id):
             await interaction.response.send_message(
                 "❌ You are not the assigned team lead for this member.", ephemeral=True
@@ -260,7 +207,6 @@ class ReviewView(ui.View):
 
 
 def is_assigned_lead(lead_user_id: int, member_id: int) -> bool:
-    """Confirms that lead_user_id is actually the assigned lead for member_id."""
     return get_lead_id_for_member(member_id) == lead_user_id
 
 
@@ -296,15 +242,10 @@ class RejectionReasonModal(ui.Modal, title="Rejection Reason"):
             log.warning("Could not DM member %s (rejection notice).", self.member.id)
 
 
-# ─────────────────────────────────────────────
-# Submission collector
-# ─────────────────────────────────────────────
-
 async def collect_submission(member: discord.User, channel: discord.DMChannel):
     if member.id in active_collectors:
         return
 
-    # Check immediately: if there's no time left today, reject right away
     remaining = seconds_until_midnight()
     if remaining <= 0:
         await channel.send(
@@ -321,7 +262,6 @@ async def collect_submission(member: discord.User, channel: discord.DMChannel):
 
     try:
         while True:
-            # Recalculate remaining time before each wait so it stays accurate
             remaining = seconds_until_midnight()
             if remaining <= 0:
                 await channel.send(
@@ -355,17 +295,12 @@ async def collect_submission(member: discord.User, channel: discord.DMChannel):
             "You'll get a notification once they've reviewed it."
         )
 
-        # Files → member's update thread | Text → their assigned lead's DM only
         await post_files_to_update_thread(member, collected_messages)
         await forward_to_lead(member, collected_messages)
 
     finally:
         active_collectors.discard(member.id)
 
-
-# ─────────────────────────────────────────────
-# File poster → member's update thread
-# ─────────────────────────────────────────────
 
 async def post_files_to_update_thread(member: discord.User, messages: list[discord.Message]):
     thread_id = get_member_cfg(member.id).get("update_thread_id", 0)
@@ -398,10 +333,6 @@ async def post_files_to_update_thread(member: discord.User, messages: list[disco
 
     log.info("Posted %d file(s) from %s to update thread %d", len(all_files), member.name, thread_id)
 
-
-# ─────────────────────────────────────────────
-# Forward text + summary → assigned team lead DM ONLY
-# ─────────────────────────────────────────────
 
 async def forward_to_lead(member: discord.User, messages: list[discord.Message]):
     lead_id   = get_lead_id_for_member(member.id)
@@ -449,10 +380,6 @@ async def forward_to_lead(member: discord.User, messages: list[discord.Message])
     log.info("Submission from %s forwarded to lead %s (%d) only", member.name, lead_name, lead_id)
 
 
-# ─────────────────────────────────────────────
-# Notify ONLY the assigned lead when member can't submit
-# ─────────────────────────────────────────────
-
 async def notify_lead_of_rejection(member: discord.User):
     lead_id   = get_lead_id_for_member(member.id)
     lead_name = get_lead_name_for_member(member.id)
@@ -473,14 +400,10 @@ async def notify_lead_of_rejection(member: discord.User):
         log.error("Cannot reach team lead %s for rejection notice: %s", lead_name, e)
 
 
-# ─────────────────────────────────────────────
-# Core reminder logic
-# ─────────────────────────────────────────────
-
 async def do_send_reminders(lead_user_id: int):
     """
     Sends reminders to all members assigned to the given team lead.
-    Called only via !testreminder — no automatic scheduling.
+    Called only via !task — no automatic scheduling.
     """
     target_ids = get_my_members(lead_user_id)
     lead_key   = get_lead_key_by_user_id(lead_user_id)
@@ -512,14 +435,10 @@ async def do_send_reminders(lead_user_id: int):
         await asyncio.sleep(1)
 
 
-# ─────────────────────────────────────────────
-# Bot events
-# ─────────────────────────────────────────────
-
 @bot.event
 async def on_ready():
     log.info("Logged in as %s (ID: %s)", bot.user, bot.user.id)
-    log.info("Bot ready — reminders are manual only via !testreminder")
+    log.info("Bot ready — reminders are manual only via !task")
 
 
 @bot.event
@@ -529,7 +448,6 @@ async def on_message(message: discord.Message):
 
     await bot.process_commands(message)
 
-    # Guide members who DM the bot outside an active submission session
     if (
         isinstance(message.channel, discord.DMChannel)
         and message.author.id in MEMBER_IDS
@@ -543,13 +461,9 @@ async def on_message(message: discord.Message):
         )
 
 
-# ─────────────────────────────────────────────
-# Admin commands
-# ─────────────────────────────────────────────
-
-@bot.command(name="testreminder")
+@bot.command(name="task")
 @is_any_team_lead()
-async def test_reminder(ctx: commands.Context):
+async def task_reminder(ctx: commands.Context):
     """
     Sends a reminder to all members assigned to the lead who runs this command.
     Submissions will be valid until 11:59 PM tonight.
@@ -593,13 +507,9 @@ async def status(ctx: commands.Context):
         f"**Active submission sessions:** {len(active_collectors)}\n"
         f"**Current time (Karachi):** {now.strftime('%I:%M %p')}\n"
         f"**Submission window:** {'Open — ' + str(mins_left) + ' min remaining today' if remaining > 0 else '🔴 Closed (past 11:59 PM)'}\n"
-        f"ℹ️ Reminders are sent manually via `!testreminder`."
+        f"ℹ️ Reminders are sent manually via `!task`."
     )
 
-
-# ─────────────────────────────────────────────
-# Entry point
-# ─────────────────────────────────────────────
 
 if __name__ == "__main__":
     bot.run(BOT_TOKEN)
